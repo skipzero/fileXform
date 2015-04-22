@@ -1,6 +1,7 @@
 /* global require, _ */
 'use strict';
 
+<<<<<<< HEAD
 var fs			= require('fs')
 	, _ 		= require('underscore')
 	, path		= __dirname + '/../../Desktop/NGL_ELT-GREX1/OPS/styles/'
@@ -39,10 +40,9 @@ console.log(process.argv)
 					// 	console.log(showLeft)
 					// 	//fs.writeFileSync(path + file, data);
 					// })
-//					console.log(showLeft)
+					// console.log(showLeft)
 				}
 			})
 		}
 	});
 }
-
