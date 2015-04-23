@@ -15,6 +15,9 @@ var fs			= require('fs')
 readCssFiles(process.argv[2]);
 
 function readCssFiles(times) {
+
+
+
 console.log(process.argv)
 	fs.readdir (path, function(err, files) {
 		if (err) {
@@ -30,8 +33,9 @@ console.log(process.argv)
 
 				if (data.match(left)) {
 					var showLeft 	= data.match(left);
-					console.log('===>=================================================================================================================')
-					console.log(data.match(left))
+
+					console.log(chalk.green('===>================================================================================================================='))
+					console.log(chalk.blue.bold(data.match(left)))
 					// _.each(showLeft, function(showLeft) {
 					// 	var ltNum = showLeft.match(dec);
 					// 	ltNum = Number.parseFloat((ltNum * times).toFixed(2));

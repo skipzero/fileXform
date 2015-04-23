@@ -25,6 +25,7 @@
   "homepage": "https://github.com/zerosquadron/fileXform",
   "private": true,
   "dependencies": {
+    "chalk": "^1.0.0",
     "underscore": "^1.8.3"
   }
 }
