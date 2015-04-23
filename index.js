@@ -1,10 +1,9 @@
 /* global require, _ */
 'use strict';
-
-<<<<<<< HEAD
 var fs			= require('fs')
 	, _ 		= require('underscore')
-	, path		= __dirname + '/../../Desktop/NGL_ELT-GREX1/OPS/styles/'
+	, chalk 	= require('chalk')
+	, path		= __dirname + '/../../Desktop/NGL_ELT-GREX1/OPS/skip/'
 	, left 		= /\bleft?\b:\s*[0-9]*.*/gmi
 	, right 	= /\bright?\b:/gmi
 	, top 		= /\btop?\b:/gmi
