@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /* global require, _ */
 'use strict';
 var fs			= require('fs')
@@ -12,28 +13,35 @@ var fs			= require('fs')
 
 	// Arguments passed in by user...
 	, mTop 		= process.argv[2]
-	, mRight 	= process.argv[3]
-	, mBottom 	= process.argv[4]
-	, mLeft 	= process.argv[5]
+	, mRight 	= process.argv[3]?process.argv[3]:mTop
+	, mBottom 	= process.argv[4]?process.argv[4]:mTop
+	, mLeft 	= process.argv[5]?process.argv[5]:mTop;
 
-	, valTop 	= ''
-	, valRight 	= ''
-	, valBottom = ''
-	, valLeft 	= '';
-
+if (process.argv.length > 3 && process.argv.length < 12) {
+	console.log(chalk.red.bold('\nPlease rerun with only one argument or one for each of the following:'))
+	console.log(chalk.red.bold('top, right, bottom, left, height, width, font-size, line-height, letter-spacing, word-spacing, margin, padding\n'))
+	return;
+}
 
 readCssFiles(mTop, mRight, mBottom, mLeft);
+
 	//  TODO: Check transforms are all in %, font-size, line-height, letter-spacing, word-spacing, margin, padding
 function readCssFiles(mTop,mRight,mBottom,mLeft) {
 
-	console.log(process.argv)
+	var valTop 		= ''
+		, valRight 	= ''
+		, valBottom = ''
+		, valLeft 	= '';
+
+	console.log(process.argv);
 
 	//  Object containing all properties we're concerned with
 	var css = {
-		'top' 				: /\bt?\b:\s*[0-9]*.*/gmi
-		, 'bottom' 			: /\bbottom\b:\s*[0-9]*.*/gmi
+		'top' 				: /\btop?\b:\s*[0-9]*.*/gmi
+		, 'right' 			: /\bright\b:\s[0-9]*.*/gmi
+		, 'bottom' 			: /\bbottom?\b:\s*[0-9]*.*/gmi
 		, 'left' 			: /\bleft?\b:\s*[0-9]*.*/gmi
-		, 'height' 			: /\bheight\b:\s*[0-9]*.*/gmi
+		, 'height' 			: /\bheight?\b:\s*[0-9]*.*/gmi
 		, 'width' 			: /\bwidth\b:\s*[0-9]*.*/gmi
 		, 'fontSize' 		: /\bfont-size\b:\s*[0-9]*.*/gmi
 		, 'lineHeight' 		: /\bline-height\b:\s*[0-9]*.*/gmi
@@ -42,6 +50,7 @@ function readCssFiles(mTop,mRight,mBottom,mLeft) {
 		, 'margin' 			: /\bmargin\b:\s*[0-9]*.*/gmi
 		, 'dec' 			: /(?:\d*\.)?\d+/gmi
 		, 'per' 			: /%/gm
+		, 'px' 				: /px/gm
 	}
 
 	fs.readdir (path, function(err, files) {
@@ -56,78 +65,48 @@ function readCssFiles(mTop,mRight,mBottom,mLeft) {
 					console.log('Error reading file:', err);
 				}
 
+				var tmp = data.split('\n');
 
-				var tmp = data;
+				console.log(chalk.bgGreen.bold(tmp))
 
-				tmp = tmp.split('\n');
-
-//				console.log(tmp)
-				_.each(tmp, function(line) {
+				_.map(tmp, function(line) {	
 					if (line.match(css.top)) {
-						valTop = line.match(css.dec);
-						console.log(chalk.bgRed(valTop), valTop * mTop);
-						return;
+						multiplier(line, mTop);
 					}
 
 					if (line.match(css.right)) {
-						valRight = line.match(css.dec);
-						console.log(chalk.bgGreen(valRight));
+						multiplier(line, mRight);
 					}
 
 					if (line.match(css.bottom)) {
-						valBottom = line.match(css.dec);
-						console.log(chalk.bgBlue(valBottom));
+						multiplier(line, mBottom);
 					}
 
 					if (line.match(css.left)) {
-						valLeft = line.match(css.dec);
-						console.log(chalk.bgYellow(valLeft));
+						multiplier(line, mLeft);
 					}
 				})
-// 				if ( data.match(css.top) || data.match(css.right) || data.match(css.bottom) ||data.match(css.left) ) {
-// 					if (data.match(css.letterSpacing)) {
-// 						console.log(data.match(css.letterSpacing))
-// 					}
-// 					var tmp = data;
-// 					//console.log(chalk.bgBlue(data))
 
-// 					if (tmp.match(css.top)) {
-// 					tmp = tmp.split('\n')
-// 						var showTop 	= data.match(css.top);
+				function multiplier(line, mult) {
+					if (line.match(css.per)){
+						return line;
+					
+					} else {
+						var lnVal = line.match(css.dec)
+							, newVal = lnVal * mult
+							, newLine = line.replace(css.dec, newVal);
 
-// //						console.log(tmp)
-// 						if (data.match(css.per)) {
-// 							console.log(chalk.bgGreen('BANGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH'))
-// 						}
-// 						console.log(grn('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^', showTop));
+						console.log(chalk.inverse(line, '\n', newLine) )
+						return newLine;
+					}
+				}
 
-// 					}
+				function saveFile(tmp) {
+					tmp.join()
+				}
 
-// 					if (data.match(css.right)) {
-// 						var showRt = data.match(css.right);
-// 						if (data.match(css.per)) {
-// 							console.log(chalk.bgRed('BANGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH'))
-// 						}
-// 						console.log(red('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>', showRt));
-
-// 					} 
-
-// 					if (data.match(css.bottom)) {
-// 						var showBtm = data.match(css.bottom);
-// 						if (data.match(css.per)) {
-// 							console.log(chalk.bgYellow('BANGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH'))
-// 						}
-// 						console.log(ylw('++++++++++++++++++++++++++++++++++++++++++++++++++', showBtm));
-
-// 					} 
-
-// 					if (data.match(css.left)) {
-// 						var showLeft 	= data.match(css.left);
-
-// 						if (data.match(css.per)) {
-// 							console.log(chalk.bgBlue('BANGHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH'))
-// 						}
-
+				console.log(chalk.bgRed.bold(tmp))
+				
 // 						console.log(blue('<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<', data.match(css.left)))
 // 						_.each(showLeft, function(showLeft) {
 // 							var ltNum = showLeft.match(css.dec);
