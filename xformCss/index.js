@@ -6,13 +6,14 @@
 var fs				= require('fs')
 	, _ 			= require('underscore')
 	, chalk 		= require('chalk')
-	, spawn 	 	= require('child_process')
+	, spawn 	 	= require('child_process').spawnSync
 
 	// Define colours for ease of use...
 	, red 			= chalk.red
 	, blue 			= chalk.blue
 	, grn 			= chalk.green
 	, ylw 			= chalk.yellow
+	, errRed 		= red.bold
 
 	// Arguments passed in by user. if only one given, scale accordingly...
 	, path			= process.argv[2]
@@ -32,8 +33,8 @@ var fs				= require('fs')
 	, mPadding		= process.argv[13]?process.argv[13]:1;
 
 if (process.argv.length > 4 && process.argv.length < 9) {
-	console.log(red.bold('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:'))
-	console.log(red.bold('top, right, bottom, left, height, width, and font-size	\n'))
+	console.log(errRed('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:'))
+	console.log(errRed('top, right, bottom, left, height, width, and font-size\n'))
 	return;
 }
 
@@ -46,12 +47,12 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		, htmlPath 	= path + '/OPS/text/';
 
 	if (process.argv.length < 3) {
-		console.log(red.bold('[ERROR]: Please rerun with a full path to the ePub.'));
+		console.log(errRed('[ERROR]: Please rerun with a full path to the ePub.'));
 		return;
 	}
 
 	if (process.argv.length < 4){
-		console.log(red.bold('[ERROR]: Please enter at least one multiplier'));
+		console.log(errRed('[ERROR]: Please enter at least one multiplier'));
 		return;
 	};
 
@@ -82,24 +83,19 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		, 'actionImg' 		: /\{\s*top:*\s*[0-9]*px;\s*left:\s*[0-9]*px;*\s\}/gmi
 	}
 
-	// TODO: fix the unzipping of the pub...
-	// function unzip (path) {
-	// 	var book = 'unzip', path;
-	// 	console.log(book)
-	// }
-	// unzip(path);
+	// fromEpub(path);
 
 	//  Fix the HTML first
 	fs.readdir (htmlPath, function(err, files){
 		if (err) {
-			console.log(red.bold('[ERROR]:', err))
+			console.log(errRed('[ERROR]:', err))
 		} else {
 			_.each(files, function(file){
 				console.log(htmlPath + file);
 				try {
 					var data = fs.readFileSync(htmlPath + file, 'utf8');
 				} catch (err) {
-					console.log(red.bold('[ERROR]:', err));
+					console.log(errRed('[ERROR]:', err));
 				}
 
 				//  To Arr to iterate over...
@@ -107,10 +103,14 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 
 				temp = _.map(temp, function(line) {
 					if (line.match(css.inline)){
-						//line = line.replace(css.inline, '""')  // take out the inline styles to move to template.css
-						console.log(blue.bold(line, '>>>>>>>>>>>>>>>>>>>>>>>>>>'));
-					}
+						var inLine 			= line.match(css.inline).toString()
+							, inLineVal 	= inLine.match(css.dec);
 
+						inLine 				= inLine.replace(css.dec, (inLineVal[0] * mTop));
+						line 				= line.replace(css.inline, inLine);
+
+						console.log(blue.bold(line, '==', inLine, inLineVal, inLineVal[0] * mTop, '--------------------------->>'))
+					}
 					return line;
 				})
 				saveFile(htmlPath, file, temp);
@@ -121,8 +121,8 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	fs.readdir (readPath, function(err, files) {
 
 		if (err) {
-			console.log(red.bold('[ERROR]:', err));
-			console.log(red.bold(readPath, 'does not seem to be a valid path.'));
+			console.log(errRed('[ERROR]:', err));
+			console.log(errRed(readPath, 'does not seem to be a valid path.'));
 
 		} else {
 			_.each(files, function(file) {
@@ -143,16 +143,12 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 						// chalk.bgBlue(console.log('[TRANSFORM]:', line))
 					}
 
-					if (line.match(css.actionImg)) {
-						var props 		= line.split('{')
-							, propsVal 	= props[1].split(';');
-
-						props[1] = propsVal.join(';\n');
-						line = props.join('{\n');
-console.log(props, propsVal, line)
-console.log(file, line, '===================++')
-
-					}
+					if (line.match(css.actionImg)) { 
+						newLine = line.match(css.actionImg).toString();
+						newLine = multiplier(newLine, mTop);
+						line = line.replace(css.actionImg, newLine)
+						console.log(line, '\n', newLine, '++++++++++++++++++++++++');
+					} else
 
 					//match our styles
 					if (line.match(css.top)) {
@@ -166,7 +162,6 @@ console.log(file, line, '===================++')
 
 					} else if (line.match(css.left)) {
 						line =  multiplier(line, mLeft);
-						console.log(grn.bold(line))
 
 					}  else if (line.match(css.height)) {
 						line =  multiplier(line, mHeight);
@@ -178,9 +173,7 @@ console.log(file, line, '===================++')
 						line =  multiplier(line, mFontSize);
 
 					} 
-					
 					return line;
-
 				})
 
 				saveFile(readPath, file, tmp); //  save the changes
@@ -189,7 +182,7 @@ console.log(file, line, '===================++')
 		}
 	});
 
-	function findTemp (path, file) {  //  find template.css and add the styles we took out of the markup
+	function findTemp (path, file) {  
 		if (file === 'template.css'){
 
 			//  Multiply by original value (25px);
@@ -199,7 +192,7 @@ console.log(file, line, '===================++')
 
 			fs.appendFile(path + file, imgDimensions, function(err) {
 				if (err) {
-					console.log(red.bold('[ERROR]:', err));
+					console.log(errRed('[ERROR]:', err));
 				}
 			})
 		}
@@ -212,19 +205,30 @@ console.log(file, line, '===================++')
 	}
 
 	function multiplier(line, mult) { 
-
 		//  If the line contains a %, it should automatically scale... (do nothing)
 		if (line.match(css.per)){
-			return line;
-		
+			return line;		
 		} else {
-
-			//find the value of the style...
-			var lnVal = line.match(css.dec)
-				, newVal 	= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
-				, newLine 	= line.replace(css.dec, newVal); //  Swap values
-			return newLine;
+			line = getVal(line, mult);
+			return line;
 		}
+	}
+
+	function getVal(line, mult) {
+
+
+		//find the value of the style...
+		var lnVal = line.match(css.dec);
+		if (lnVal != null && lnVal.length === 2  ) {
+			for (var val in lnVal) {
+				return val;
+			}
+
+			console.log(lnVal, '&&', val, '==========================================???'); return;
+		}
+		var newVal 	= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
+			, newLine 	= line.replace(css.dec, newVal); //  Swap values
+		return newLine;
 	}
 
 	function saveFile(path, file, tmp) {
@@ -235,14 +239,15 @@ console.log(file, line, '===================++')
 		//  Save file to original...
 		console.log('Saving file....', file)
 		fs.writeFileSync(path + file, tmp);
-		toEpub(path);
 	}
 
-	function toEpub(path) {debugger;
-		var zip = spawn('zip', ['-rx', '*.DS_Store', path]);
-console.log(zip)
-		return zip;
-		//  return to an ePub and remove unwanted files...
-		// 'zip -rX "' + path + '" mimetype META-INF OPS -x "*.DS_Store"';
+	function fromEpub(path) {
+		//spawn('zip', ['-rx', '*.DS_Store', path+'book.zip', path]);  //  the zipping...
+		spawn('unzip', ['-d', path, path]);
 	}
 }
+
+
+
+
+
