@@ -108,8 +108,6 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 
 						inLine 				= inLine.replace(css.dec, (inLineVal[0] * mTop));
 						line 				= line.replace(css.inline, inLine);
-
-						console.log(blue.bold(line, '==', inLine, inLineVal, inLineVal[0] * mTop, '--------------------------->>'))
 					}
 					return line;
 				})
@@ -127,8 +125,6 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		} else {
 			_.each(files, function(file) {
 				console.log(readPath + file);
-
-				findTemp(readPath, file); //  adding css to temp that's removed from HTML
 				
 				try {
 					var data = fs.readFileSync(readPath + file, 'utf8');
@@ -144,11 +140,14 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 					}
 
 					if (line.match(css.actionImg)) { 
-						newLine = line.match(css.actionImg).toString();
-						newLine = multiplier(newLine, mTop);
-						line = line.replace(css.actionImg, newLine)
-						console.log(line, '\n', newLine, '++++++++++++++++++++++++');
-					} else
+						newLine = line.match(css.actionImg).toString(); //  [ '{ top: 358px; left: 73px; }' ]
+						newLine = actionImages(newLine, mTop);
+						newLine = newLine.join(';')
+						line = line.replace(css.actionImg, newLine);
+						line = line.replace(',', ';');
+						line = line.replace(',', ';');
+						return line;
+					}
 
 					//match our styles
 					if (line.match(css.top)) {
@@ -182,20 +181,43 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		}
 	});
 
-	function findTemp (path, file) {  
-		if (file === 'template.css'){
-
-			//  Multiply by original value (25px);
-			var hImg = 25 * mTop
-			,	wImg = 25 * mTop
-			,	imgDimensions = '.vsm-ngl-act-icon img,\n.vsm-ngl-audio-icon img {\n\twidth:'+ wImg + 'px;\n\theight:'+ hImg +'px;\n}\n'
-
-			fs.appendFile(path + file, imgDimensions, function(err) {
-				if (err) {
-					console.log(errRed('[ERROR]:', err));
-				}
-			})
+	//Function for the two values  on one line...
+	function actionImages(newLine, mult) {
+		newLine = newLine.split(';');
+		console.log(newLine, '***********************************')
+		for (var i = 0; i < newLine.length; i++) {
+			console.log(newLine[i])
+			if (newLine[i] != ' }') {
+				var val = newLine[i].match(css.dec);
+				val = val * mult;
+				val = val.toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
+				newLine[i] = newLine[i].replace(css.dec, val)
+				ret(newLine[i]);
+			}
+		return newLine;
 		}
+	}
+
+	// Now just changing in the Markup...
+
+	// function findTemp (path, file) {  
+	// 	if (file === 'template.css'){
+
+	// 		//  Multiply by original value (25px);
+	// 		var hImg = 25 * mTop
+	// 		,	wImg = 25 * mTop
+	// 		,	imgDimensions = '.vsm-ngl-act-icon img,\n.vsm-ngl-audio-icon img {\n\twidth:'+ wImg + 'px;\n\theight:'+ hImg +'px;\n}\n'
+
+	// 		fs.appendFile(path + file, imgDimensions, function(err) {
+	// 			if (err) {
+	// 				console.log(errRed('[ERROR]:', err));
+	// 			}
+	// 		})
+	// 	}
+	// }
+
+	function ret(newLine){
+		return newLine;
 	}
 
 	function getFile(path) {
@@ -215,18 +237,9 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	}
 
 	function getVal(line, mult) {
-
-
-		//find the value of the style...
-		var lnVal = line.match(css.dec);
-		if (lnVal != null && lnVal.length === 2  ) {
-			for (var val in lnVal) {
-				return val;
-			}
-
-			console.log(lnVal, '&&', val, '==========================================???'); return;
-		}
-		var newVal 	= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
+		var line 		= line != undefined ? line : newLine
+			, lnVal 	= line.match(css.dec)
+			, newVal 	= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
 			, newLine 	= line.replace(css.dec, newVal); //  Swap values
 		return newLine;
 	}
