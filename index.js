@@ -6,17 +6,15 @@
 var fs				= require('fs')
 	, _ 			= require('underscore')
 	, chalk 		= require('chalk')
-	, childProc 	= require('child_process')
+	, spawn 	 	= require('child_process').spawnSync
 
 	// Define colours for ease of use...
-	, red 			= chalk.red
-	, blue 			= chalk.blue
-	, grn 			= chalk.green
-	, ylw 			= chalk.yellow
+	, okGrn 		= chalk.green.bold
+	, errRed 		= chalk.red.bold
 
 	// Arguments passed in by user. if only one given, scale accordingly...
 	, path			= process.argv[2]
-	, mTop 			= process.argv[3]
+	, mTop 			= process.argv[3]  //  First two are required...
 	, mRight 		= process.argv[3]?process.argv[3]:mTop
 	, mBottom 		= process.argv[4]?process.argv[4]:mTop
 	, mLeft 		= process.argv[5]?process.argv[5]:mTop
@@ -28,41 +26,50 @@ var fs				= require('fs')
 	, mLineHeight 	= process.argv[9]?process.argv[9]:1
 	, mLetterSpace 	= process.argv[10]?process.argv[10]:1
 	, mWordSpace 	= process.argv[11]?process.argv[11]:1
-	, mMargin 		= process.argv[12]?process.argv[12]:1
-	, mPadding		= process.argv[13]?process.argv[13]:1;
+	, mPadding		= process.argv[12]?process.argv[12]:1
+	, mTopPadding 	= process.argv[12]?process.argv[12]:1
+	, mRightPadding = process.argv[13]?process.argv[13]:1
+	, mBtmPadding 	= process.argv[14]?process.argv[14]:1
+	, mLeftPadding 	= process.argv[15]?process.argv[15]:1
+	, mTopMargin 	= process.argv[16]?process.argv[16]:1
+	, mRightMargin 	= process.argv[17]?process.argv[17]:1
+	, mBtmMargin 	= process.argv[18]?process.argv[18]:1
+	, mLeftMargin 	= process.argv[19]?process.argv[19]:1;
 
 if (process.argv.length > 4 && process.argv.length < 9) {
-	console.log(red.bold('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:'))
-	console.log(red.bold('top, right, bottom, left, height, width, and font-size	\n'))
+	console.log(errRed('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:'))
+	console.log(errRed('top, right, bottom, left, height, width, font-size, padding\n'))
+	console.log(errRed('\n You can enter separate properties for the following, in this order:'))
+	console.log(errRed('top, right, bottom, left, height, width, font-size, line-height, letter-spacing, word-spacing, padding-top, padding-right, padding-bottom, padding-left, margin-top\n'))
+	console.log(errRed('margin-right, margin-bottom, margin-left\n'))
 	return;
 }
 
-readCssFiles(path, mTop, mRight, mBottom, mLeft, mHeight, mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mMargin, mPadding);
+readCssFiles(path, mTop, mRight, mBottom, mLeft, mHeight, mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin);
 
-//  TODO: Check transforms are all in %, font-size, line-height, letter-spacing, word-spacing, margin, padding
-function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mMargin, mPadding) {
+//  TODO: line-height, letter-spacing, word-spacing, margin, 
+function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin) {
 
 	var readPath = path + '/OPS/styles/'
-		, htmlPath 	= path + '/OPS/text/';
-
-	if (process.argv.length < 3) {
-		console.log(red.bold('[ERROR]: Please rerun with a full path to the ePub.'));
-		return;
-	}
-
-	if (process.argv.length < 4){
-		console.log(red.bold('[ERROR]: Please enter at least one multiplier'));
-		return;
-	};
-
-	var newLine 	= ''
+		, htmlPath 	= path + '/OPS/text/'
+		, newLine 	= ''
 		, valTop 	= ''
 		, valRight 	= ''
 		, valBottom = ''
 		, valLeft 	= '';
 
+	if (process.argv.length < 3) {
+		console.log(errRed('[ERROR]: Please rerun with a full path to the ePub.'));
+		return;
+	}
+
+	if (process.argv.length < 4){
+		console.log(errRed('[ERROR]: Please enter at least one multiplier'));
+		return;
+	};
+
 	//  Object containing all properties we're concerned with, for ease
-	var css = {
+	var prop = {
 		'transform' 		: /\btransform\b/gmi
 		, 'top' 			: /^\s*\btop?\b:\s*[0-9]*.*$/gmi
 		, 'right' 			: /^\s*\bright\b:\s*[0-9]*.*$/gmi
@@ -75,42 +82,46 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		, 'letterSpacing' 	: /^\s*\bletter-spacing\b:\s*[0-9]*.*$/gmi
 		, 'wordSpacing' 	: /^\s*\bword-spacing\b:\s*[0-9]*.*$/gmi
 		, 'margin' 			: /^\s*\bmargin\b:\s*[0-9]*.*$/gmi
-		, 'padding' 		: /^\s*\bpadding\b:\s*[0-9]*.*$/gmi
-		, 'dec' 			: /(?:\d*\.)?\d+/gmi
+		, 'padding' 		: /\bpadding\b/gi
+		, 'dLeft'		 	: /left/gi
+		, 'dTop'			: /top/gi
+		, 'dRight'			: /right/gi
+		, 'dBottom'			: /bottom/gi
+		, 'dec' 			: /(?:\d*\.)?\d+/g
+		, 'px'				: /px/gi
 		, 'per' 			: /%/g
+		, 'bang'			: /!/g
 		, 'inline' 			: /"width:*\s*[0-9]*px;\s*height:[0-9]*px;"/g
 		, 'actionImg' 		: /\{\s*top:*\s*[0-9]*px;\s*left:\s*[0-9]*px;*\s\}/gmi
+		, 'com' 			: /,+/g
 	}
 
-	// TODO: fix the unzipping of the pub...
-	// function unzip (path) {
-	// 	var book = 'unzip', path;
-	// 	console.log(book)
-	// }
-	// unzip(path);
+	// fromEpub(path);  //  TODO: Unzip the ePub...
 
-	//  Fix the HTML first
+	//  This fixes the HTML
 	fs.readdir (htmlPath, function(err, files){
 		if (err) {
-			console.log(red.bold('[ERROR]:', err))
+			console.log(errRed('[ERROR]:', err))
 		} else {
 			_.each(files, function(file){
 				console.log(htmlPath + file);
 				try {
 					var data = fs.readFileSync(htmlPath + file, 'utf8');
 				} catch (err) {
-					console.log(red.bold('[ERROR]:', err));
+					console.log(errRed('[ERROR]:', err));
 				}
 
 				//  To Arr to iterate over...
 				var temp = data.split('\n');
 
 				temp = _.map(temp, function(line) {
-					if (line.match(css.inline)){
-						//line = line.replace(css.inline, '""')  // take out the inline styles to move to template.css
-						console.log(blue.bold(line, '>>>>>>>>>>>>>>>>>>>>>>>>>>'));
-					}
+					if (line.match(prop.inline)){
+						var inLine 			= line.match(prop.inline).toString()
+							, inLineVal 	= inLine.match(prop.dec);
 
+						inLine 				= inLine.replace(prop.dec, (inLineVal[0] * mTop));
+						line 				= line.replace(prop.inline, inLine);
+					}
 					return line;
 				})
 				saveFile(htmlPath, file, temp);
@@ -118,17 +129,15 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		}
 	})
 
-	fs.readdir (readPath, function(err, files) {
+	fs.readdir (readPath, function(err, files) {  //  This takes care of the prop...
 
 		if (err) {
-			console.log(red.bold('[ERROR]:', err));
-			console.log(red.bold(readPath, 'does not seem to be a valid path.'));
+			console.log(errRed('[ERROR]:', err));
+			console.log(errRed(readPath, 'does not seem to be a valid path.'));
 
 		} else {
 			_.each(files, function(file) {
 				console.log(readPath + file);
-
-				findTemp(readPath, file); //  adding css to temp that's removed from HTML
 				
 				try {
 					var data = fs.readFileSync(readPath + file, 'utf8');
@@ -139,98 +148,158 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 				var tmp = data.split('\n');
 
 				tmp = _.map(tmp, function(line) {
-					if (line.match(css.transform)) {  // making sure all transforms will scale naturally... checked manually
+					if (line.match(prop.transform)) {  // making sure all transforms will scale naturally... checked manually
 						// chalk.bgBlue(console.log('[TRANSFORM]:', line))
 					}
-					if (line.match(css.actionImg)) {
-						var props 		= line.split('{')
-							, propsVal 	= props[1].split(';');
 
-						props[1] = propsVal.join(';\n');
-						line = props.join('{\n');
-
-console.log(props, propsVal, line)
-// Fix Arr to split out and join back correctly...
-						// props = props.join(';\n');
-						// line = line.join('{\n')
-						//line = multiplier(line, mTop);
-						 console.log(file, line, '===================++')
-					} else
+					if (line.match(prop.actionImg)) { 
+						line = actionImages(line, mTop);
+						return line;
+					}
 
 					//match our styles
-					if (line.match(css.top)) {
+					if (line.match(prop.top)) {
 						line = multiplier(line, mTop);
 
-					} else if (line.match(css.right)) {
+					} else if (line.match(prop.right)) {
 						line = multiplier(line, mRight);
 
-					} else if (line.match(css.bottom)) {
+					} else if (line.match(prop.bottom)) {
 						line =  multiplier(line, mBottom);
 
-					} else if (line.match(css.left)) {
+					} else if (line.match(prop.left)) {
 						line =  multiplier(line, mLeft);
-						console.log(grn.bold(line))
 
-					}  else if (line.match(css.height)) {
+					}  else if (line.match(prop.height)) {
 						line =  multiplier(line, mHeight);
 
-					} else if (line.match(css.width)) {
+					} else if (line.match(prop.width)) {
 						line =  multiplier(line, mWidth);
 
-					} else if (line.match(css.fontSize)) {
+					} else if (line.match(prop.fontSize)) {
 						line =  multiplier(line, mFontSize);
 
-					} 
-					
-					return line;
+					} else if (line.match(prop.padding)) {
+						//  Use multi val stepper to handle margin and padding
+						line = multiVal(line, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding);
+					}
 
+					return line;
 				})
 
 				saveFile(readPath, file, tmp); //  save the changes
-
-				// TODO: 
-				//  toEpub();  //  Zip it back up once we're done
 
 			})
 		}
 	});
 
-	function findTemp (path, file) {
-		if (file === 'template.css'){
+	//Function for the two values  on one line...
+	function actionImages(line, mult) {
 
-			//  Multiply by original value (25px);
-			var hImg = 25 * mTop
-			,	wImg = 25 * mTop
-			,	imgDimensions = '.vsm-ngl-act-icon img,\n.vsm-ngl-audio-icon img {\n\twidth:'+ wImg + 'px;\n\theight:'+ hImg +'px;\n}\n'
+		var newLine = line.match(prop.actionImg);
+		newLine = newLine.toString();
+		newLine = newLine.split(';');
 
-			fs.appendFile(path + file, imgDimensions, function(err) {
-				if (err) {
-					console.log(red.bold('[ERROR]:', err));
-				}
-			})
+		for (var i = 0; i < newLine.length; i++) {
+		
+			if (newLine[i] != ' }') {
+				var val = newLine[i].match(prop.dec);
+				val = val * mult;
+				val = val.toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
+				newLine[i] = newLine[i].replace(prop.dec, val)
+				ret(newLine[i]);
+			}
+		
+			newLine = newLine.join()
+			line = line.replace(prop.actionImg, newLine);
+			line = line.replace(prop.com, ';');
+			return line;
 		}
+	}
+
+	function multiVal(line, mTopVal, mRightVal, mBtmVal, mLeftVal) {  //  Give it the line and the m* var to multiply values.
+		if (line.match(prop.dTop)){
+			line = multiplier(line, mTopVal);
+
+		} else if (line.match(prop.dRight)) {
+			line = multiplier(line, mRightVal);
+
+		} else if (line.match(prop.dBottom)) {
+			line = multiplier(line, mBtmVal);
+
+		} else if (line.match(prop.dLeft)) {
+			line = multiplier(line, mLeftVal);
+
+		} else {
+			newLine = line.split(':')
+			console.log(newLine, line)
+			var currVal = newLine[1].split(' ');
+console.log(currVal+ '\n',currVal.length + '\n', newLine,'<<=======')
+			for(var i = 0; i <= currVal.length; i++) {
+				var newVal = currVal;
+
+				if (newVal[i] !== '') {
+
+					if (newVal[i] === undefined || newVal[i].match(prop.per) || newVal[i].match(prop.bang) || !newVal[i].match(prop.px)) {
+						return newVal[i];
+					
+					} else {
+						newVal[i] = getVal(newVal[i], mTopVal);
+					} 
+
+					ret(newVal[i]);
+				}
+			}
+		}
+		// line =  multiplier(line, paddingLeft);
+		console.log(line)
+
+	}
+
+	// Now just changing in the Markup...
+
+	// function findTemp (path, file) {  
+	// 	if (file === 'template.css'){
+
+	// 		//  Multiply by original value (25px);
+	// 		var hImg = 25 * mTop
+	// 		,	wImg = 25 * mTop
+	// 		,	imgDimensions = '.vsm-ngl-act-icon img,\n.vsm-ngl-audio-icon img {\n\twidth:'+ wImg + 'px;\n\theight:'+ hImg +'px;\n}\n'
+
+	// 		fs.appendFile(path + file, imgDimensions, function(err) {
+	// 			if (err) {
+	// 				console.log(errRed('[ERROR]:', err));
+	// 			}
+	// 		})
+	// 	}
+	// }
+
+	//  Return function for loops...
+	function ret(newLine){
+		return newLine;
 	}
 
 	function getFile(path) {
 		fileName = path.replace(/^.*[\\\/]/, '');
-		console.log(chalk.bgYellow.bold(fileName))
 	    return fileName;
 	}
 
 	function multiplier(line, mult) { 
-
 		//  If the line contains a %, it should automatically scale... (do nothing)
-		if (line.match(css.per)){
-			return line;
-		
+		if (line.match(prop.per)){
+			return line;		
 		} else {
-
-			//find the value of the style...
-			var lnVal = line.match(css.dec)
-				, newVal 	= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
-				, newLine 	= line.replace(css.dec, newVal); //  Swap values
-			return newLine;
+			line = getVal(line, mult);
+			return line;
 		}
+	}
+
+	function getVal(line, mult) {
+		console.log(line)
+		var lnVal 		= line.match(prop.dec)
+			, newVal 	= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
+			, newLine 	= line.replace(prop.dec, newVal); //  Swap values
+		return newLine;
 	}
 
 	function saveFile(path, file, tmp) {
@@ -239,13 +308,12 @@ console.log(props, propsVal, line)
 		tmp = tmp.join('\n')
 
 		//  Save file to original...
-		console.log('Saving file....', file)
+		console.log(okGrn('[SUCCESS] Saving file....', file));
 		fs.writeFileSync(path + file, tmp);
 	}
 
-	function toEpub() {
-
-		//  return to an ePub and remove unwanted files...
-		//zipchild = 'zip -rX "' + epubpath + '" mimetype META-INF OPS -x "*.DS_Store"';
+	function fromEpub(path) {
+		//spawn('zip', ['-rx', '*.DS_Store', path+'book.zip', path]);  //  the zipping...
+		spawn('unzip', ['-d', path, path]);
 	}
 }
