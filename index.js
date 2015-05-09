@@ -23,25 +23,24 @@ var fs				= require('fs')
 	, mFontSize 	= process.argv[8]?process.argv[8]:mTop
 
 	//unless specified, make the secondary optional. (line-height, letter-spacing, word-spacing, margin, & padding)
-	, mLineHeight 	= process.argv[9]?process.argv[9]:1
-	, mLetterSpace 	= process.argv[10]?process.argv[10]:1
-	, mWordSpace 	= process.argv[11]?process.argv[11]:1
-	, mPadding		= process.argv[12]?process.argv[12]:1
-	, mTopPadding 	= process.argv[12]?process.argv[12]:1
-	, mRightPadding = process.argv[13]?process.argv[13]:1
-	, mBtmPadding 	= process.argv[14]?process.argv[14]:1
-	, mLeftPadding 	= process.argv[15]?process.argv[15]:1
-	, mTopMargin 	= process.argv[16]?process.argv[16]:1
-	, mRightMargin 	= process.argv[17]?process.argv[17]:1
-	, mBtmMargin 	= process.argv[18]?process.argv[18]:1
-	, mLeftMargin 	= process.argv[19]?process.argv[19]:1;
+	, mLineHeight 	= process.argv[9]?process.argv[9]:mTop
+	, mLetterSpace 	= process.argv[10]?process.argv[10]:mTop
+	, mWordSpace 	= process.argv[11]?process.argv[11]:mTop
+	, mTopPadding 	= process.argv[12]?process.argv[12]:mTop
+	, mRightPadding = process.argv[13]?process.argv[13]:mTop
+	, mBtmPadding 	= process.argv[14]?process.argv[14]:mTop
+	, mLeftPadding 	= process.argv[15]?process.argv[15]:mTop
+	, mTopMargin 	= process.argv[16]?process.argv[16]:mTop
+	, mRightMargin 	= process.argv[17]?process.argv[17]:mTop
+	, mBtmMargin 	= process.argv[18]?process.argv[18]:mTop
+	, mLeftMargin 	= process.argv[19]?process.argv[19]:mTop;
 
 if (process.argv.length > 4 && process.argv.length < 9) {
-	console.log(errRed('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:'))
-	console.log(errRed('top, right, bottom, left, height, width, font-size, padding\n'))
-	console.log(errRed('\n You can enter separate properties for the following, in this order:'))
-	console.log(errRed('top, right, bottom, left, height, width, font-size, line-height, letter-spacing, word-spacing, padding-top, padding-right, padding-bottom, padding-left, margin-top\n'))
-	console.log(errRed('margin-right, margin-bottom, margin-left\n'))
+	throwError('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:');
+	throwError('top, right, bottom, left, height, width, font-size, padding\n');
+	throwError('\n You can enter separate properties for the following, in this order:');
+	throwError('top, right, bottom, left, height, width, font-size, line-height, letter-spacing, word-spacing, padding-top, padding-right, padding-bottom, padding-left, margin-top\n');
+	throwError('margin-right, margin-bottom, margin-left\n');
 	return;
 }
 
@@ -59,12 +58,12 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		, valLeft 	= '';
 
 	if (process.argv.length < 3) {
-		console.log(errRed('[ERROR]: Please rerun with a full path to the ePub.'));
+		throwError('Please rerun with a full path to the ePub.');
 		return;
 	}
 
 	if (process.argv.length < 4){
-		console.log(errRed('[ERROR]: Please enter at least one multiplier'));
+		throwError('Please enter at least one multiplier');
 		return;
 	};
 
@@ -81,7 +80,7 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		, 'lineHeight' 		: /^\s*\bline-height\b:\s*[0-9]*.*$/gmi
 		, 'letterSpacing' 	: /^\s*\bletter-spacing\b:\s*[0-9]*.*$/gmi
 		, 'wordSpacing' 	: /^\s*\bword-spacing\b:\s*[0-9]*.*$/gmi
-		, 'margin' 			: /^\s*\bmargin\b:\s*[0-9]*.*$/gmi
+		, 'margin' 			: /\bmargin\b/gi
 		, 'padding' 		: /\bpadding\b/gi
 		, 'dLeft'		 	: /left/gi
 		, 'dTop'			: /top/gi
@@ -101,14 +100,14 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	//  This fixes the HTML
 	fs.readdir (htmlPath, function(err, files){
 		if (err) {
-			console.log(errRed('[ERROR]:', err))
+			throwError(err);
 		} else {
 			_.each(files, function(file){
 				console.log(htmlPath + file);
 				try {
 					var data = fs.readFileSync(htmlPath + file, 'utf8');
 				} catch (err) {
-					console.log(errRed('[ERROR]:', err));
+					throwError(err);
 				}
 
 				//  To Arr to iterate over...
@@ -132,9 +131,8 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	fs.readdir (readPath, function(err, files) {  //  This takes care of the prop...
 
 		if (err) {
-			console.log(errRed('[ERROR]:', err));
-			console.log(errRed(readPath, 'does not seem to be a valid path.'));
-
+			throwError(err);
+			
 		} else {
 			_.each(files, function(file) {
 				console.log(readPath + file);
@@ -142,7 +140,7 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 				try {
 					var data = fs.readFileSync(readPath + file, 'utf8');
 				} catch (err) {
-					console.log('Error reading file:', err);
+					throwError(err);
 				}
 
 				var tmp = data.split('\n');
@@ -158,7 +156,14 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 					}
 
 					//match our styles
-					if (line.match(prop.top)) {
+					 if (line.match(prop.padding)) {   //  Use multi val stepper to handle margin and padding
+						line = multiVal(line, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding);
+
+					} else if (line.match(prop.margin)) {
+					 	console.log('margin:', line )
+						line = multiVal(line, mTopMargin, mRightMargin, mBtmMargin, mLeftMargin);
+
+					} else if (line.match(prop.top)) {
 						line = multiplier(line, mTop);
 
 					} else if (line.match(prop.right)) {
@@ -179,9 +184,6 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 					} else if (line.match(prop.fontSize)) {
 						line =  multiplier(line, mFontSize);
 
-					} else if (line.match(prop.padding)) {
-						//  Use multi val stepper to handle margin and padding
-						line = multiVal(line, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding);
 					}
 
 					return line;
@@ -218,6 +220,8 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	}
 
 	function multiVal(line, mTopVal, mRightVal, mBtmVal, mLeftVal) {  //  Give it the line and the m* var to multiply values.
+
+		//  handles margins and paddings...
 		if (line.match(prop.dTop)){
 			line = multiplier(line, mTopVal);
 
@@ -228,51 +232,30 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 			line = multiplier(line, mBtmVal);
 
 		} else if (line.match(prop.dLeft)) {
+			console.log('MARGIN-LEFT:', line)
 			line = multiplier(line, mLeftVal);
+			console.log('NEW MARGIN-LEFT:', line)
 
 		} else {
 			newLine = line.split(':')
-			console.log(newLine, line)
 			var currVal = newLine[1].split(' ');
-console.log(currVal+ '\n',currVal.length + '\n', newLine,'<<=======')
 			for(var i = 0; i <= currVal.length; i++) {
 				var newVal = currVal;
-
 				if (newVal[i] !== '') {
-
 					if (newVal[i] === undefined || newVal[i].match(prop.per) || newVal[i].match(prop.bang) || !newVal[i].match(prop.px)) {
 						return newVal[i];
 					
 					} else {
 						newVal[i] = getVal(newVal[i], mTopVal);
-					} 
 
+					} 
 					ret(newVal[i]);
 				}
 			}
 		}
 		// line =  multiplier(line, paddingLeft);
-		console.log(line)
-
+		return line;
 	}
-
-	// Now just changing in the Markup...
-
-	// function findTemp (path, file) {  
-	// 	if (file === 'template.css'){
-
-	// 		//  Multiply by original value (25px);
-	// 		var hImg = 25 * mTop
-	// 		,	wImg = 25 * mTop
-	// 		,	imgDimensions = '.vsm-ngl-act-icon img,\n.vsm-ngl-audio-icon img {\n\twidth:'+ wImg + 'px;\n\theight:'+ hImg +'px;\n}\n'
-
-	// 		fs.appendFile(path + file, imgDimensions, function(err) {
-	// 			if (err) {
-	// 				console.log(errRed('[ERROR]:', err));
-	// 			}
-	// 		})
-	// 	}
-	// }
 
 	//  Return function for loops...
 	function ret(newLine){
@@ -315,5 +298,9 @@ console.log(currVal+ '\n',currVal.length + '\n', newLine,'<<=======')
 	function fromEpub(path) {
 		//spawn('zip', ['-rx', '*.DS_Store', path+'book.zip', path]);  //  the zipping...
 		spawn('unzip', ['-d', path, path]);
+	}
+
+	function throwError(err){
+		console.log(errRed('[ERROR]:', err));
 	}
 }
