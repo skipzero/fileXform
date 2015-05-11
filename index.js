@@ -23,16 +23,16 @@ var fs				= require('fs')
 	, mFontSize 	= process.argv[8]?process.argv[8]:mTop
 
 	//unless specified, make the secondary optional. (line-height, letter-spacing, word-spacing, margin, & padding)
-	, mLineHeight 	= process.argv[9]?process.argv[9]:mTop
-	, mLetterSpace 	= process.argv[10]?process.argv[10]:mTop
-	, mWordSpace 	= process.argv[11]?process.argv[11]:mTop
-	, mTopPadding 	= process.argv[12]?process.argv[12]:mTop
-	, mRightPadding = process.argv[13]?process.argv[13]:mTop
-	, mBtmPadding 	= process.argv[14]?process.argv[14]:mTop
-	, mLeftPadding 	= process.argv[15]?process.argv[15]:mTop
-	, mTopMargin 	= process.argv[16]?process.argv[16]:mTop
-	, mRightMargin 	= process.argv[17]?process.argv[17]:mTop
-	, mBtmMargin 	= process.argv[18]?process.argv[18]:mTop
+	, mLineHeight 	= process.argv[9]?process.argv[9]:1
+	, mLetterSpace 	= process.argv[10]?process.argv[10]:1
+	, mWordSpace 	= process.argv[11]?process.argv[11]:1
+	, mTopPadding 	= process.argv[12]?process.argv[12]:1
+	, mRightPadding = process.argv[13]?process.argv[13]:1
+	, mBtmPadding 	= process.argv[14]?process.argv[14]:1
+	, mLeftPadding 	= process.argv[15]?process.argv[15]:1
+	, mTopMargin 	= process.argv[16]?process.argv[16]:1
+	, mRightMargin 	= process.argv[17]?process.argv[17]:1
+	, mBtmMargin 	= process.argv[18]?process.argv[18]:1
 	, mLeftMargin 	= process.argv[19]?process.argv[19]:mTop;
 
 if (process.argv.length > 4 && process.argv.length < 9) {
@@ -293,11 +293,6 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		//  Save file to original...
 		console.log(okGrn('[SUCCESS] Saving file....', file));
 		fs.writeFileSync(path + file, tmp);
-	}
-
-	function fromEpub(path) {
-		//spawn('zip', ['-rx', '*.DS_Store', path+'book.zip', path]);  //  the zipping...
-		spawn('unzip', ['-d', path, path]);
 	}
 
 	function throwError(err){
