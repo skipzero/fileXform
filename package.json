@@ -26,6 +26,7 @@
   "private": true,
   "dependencies": {
     "chalk": "^1.0.0",
-    "underscore": "^1.8.3"
+    "underscore": "^1.8.3",
+    "node-dom": "^0.1.0"
   }
 }

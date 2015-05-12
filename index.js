@@ -6,43 +6,37 @@
 var fs				= require('fs')
 	, _ 			= require('underscore')
 	, chalk 		= require('chalk')
-	, spawn 	 	= require('child_process').spawnSync
+	, dom 			= require('node-dom').dom
+	, proArg 		= process.argv
 
 	// Define colours for ease of use...
 	, okGrn 		= chalk.green.bold
 	, errRed 		= chalk.red.bold
 
 	// Arguments passed in by user. if only one given, scale accordingly...
-	, path			= process.argv[2]
-	, mTop 			= process.argv[3]  //  First two are required...
-	, mRight 		= process.argv[3]?process.argv[3]:mTop
-	, mBottom 		= process.argv[4]?process.argv[4]:mTop
-	, mLeft 		= process.argv[5]?process.argv[5]:mTop
-	, mHeight 		= process.argv[6]?process.argv[6]:mTop
-	, mWidth 		= process.argv[7]?process.argv[7]:mTop
-	, mFontSize 	= process.argv[8]?process.argv[8]:mTop
+	, path			= proArg[2]
+	, mTop 			= proArg[3]  //  First two are required...
+	, mRight 		= proArg[3]?proArg[3]:mTop
+	, mBottom 		= proArg[4]?proArg[4]:mTop
+	, mLeft 		= proArg[5]?proArg[5]:mTop
+	, mHeight 		= proArg[6]?proArg[6]:mTop
+	, mWidth 		= proArg[7]?proArg[7]:mTop
+	, mFontSize 	= proArg[8]?proArg[8]:mTop
 
 	//unless specified, make the secondary optional. (line-height, letter-spacing, word-spacing, margin, & padding)
-	, mLineHeight 	= process.argv[9]?process.argv[9]:1
-	, mLetterSpace 	= process.argv[10]?process.argv[10]:1
-	, mWordSpace 	= process.argv[11]?process.argv[11]:1
-	, mTopPadding 	= process.argv[12]?process.argv[12]:1
-	, mRightPadding = process.argv[13]?process.argv[13]:1
-	, mBtmPadding 	= process.argv[14]?process.argv[14]:1
-	, mLeftPadding 	= process.argv[15]?process.argv[15]:1
-	, mTopMargin 	= process.argv[16]?process.argv[16]:1
-	, mRightMargin 	= process.argv[17]?process.argv[17]:1
-	, mBtmMargin 	= process.argv[18]?process.argv[18]:1
-	, mLeftMargin 	= process.argv[19]?process.argv[19]:mTop;
+	, mLineHeight 	= proArg[9]?proArg[9]:1
+	, mLetterSpace 	= proArg[10]?proArg[10]:1
+	, mWordSpace 	= proArg[11]?proArg[11]:1
+	, mTopPadding 	= proArg[12]?proArg[12]:1
+	, mRightPadding = proArg[13]?proArg[13]:1
+	, mBtmPadding 	= proArg[14]?proArg[14]:1
+	, mLeftPadding 	= proArg[15]?proArg[15]:1
+	, mTopMargin 	= proArg[16]?proArg[16]:1
+	, mRightMargin 	= proArg[17]?proArg[17]:1
+	, mBtmMargin 	= proArg[18]?proArg[18]:1
+	, mLeftMargin 	= proArg[19]?proArg[19]:mTop;
 
-if (process.argv.length > 4 && process.argv.length < 9) {
-	throwError('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:');
-	throwError('top, right, bottom, left, height, width, font-size, padding\n');
-	throwError('\n You can enter separate properties for the following, in this order:');
-	throwError('top, right, bottom, left, height, width, font-size, line-height, letter-spacing, word-spacing, padding-top, padding-right, padding-bottom, padding-left, margin-top\n');
-	throwError('margin-right, margin-bottom, margin-left\n');
-	return;
-}
+	console.log(dom)
 
 readCssFiles(path, mTop, mRight, mBottom, mLeft, mHeight, mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin);
 
@@ -57,15 +51,24 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		, valBottom = ''
 		, valLeft 	= '';
 
-	if (process.argv.length < 3) {
+	if (proArg.length < 3) {
 		throwError('Please rerun with a full path to the ePub.');
 		return;
 	}
 
-	if (process.argv.length < 4){
+	if (proArg.length < 4){
 		throwError('Please enter at least one multiplier');
 		return;
-	};
+	}
+
+	if (proArg.length > 4 && proArg.length < 9) {
+		throwError('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:');
+		throwError('top, right, bottom, left, height, width, font-size, padding\n');
+		// throwError('\n You can enter separate properties for the following, in this order:');
+		// throwError('top, right, bottom, left, height, width, font-size, line-height, letter-spacing, word-spacing, padding-top, padding-right, padding-bottom, padding-left, margin-top\n');
+		// throwError('margin-right, margin-bottom, margin-left\n');
+		return
+	}
 
 	//  Object containing all properties we're concerned with, for ease
 	var prop = {
@@ -160,7 +163,6 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 						line = multiVal(line, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding);
 
 					} else if (line.match(prop.margin)) {
-					 	console.log('margin:', line )
 						line = multiVal(line, mTopMargin, mRightMargin, mBtmMargin, mLeftMargin);
 
 					} else if (line.match(prop.top)) {
@@ -232,34 +234,27 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 			line = multiplier(line, mBtmVal);
 
 		} else if (line.match(prop.dLeft)) {
-			console.log('MARGIN-LEFT:', line)
 			line = multiplier(line, mLeftVal);
-			console.log('NEW MARGIN-LEFT:', line)
 
 		} else {
-			newLine = line.split(':')
-			var currVal = newLine[1].split(' ');
-			for(var i = 0; i <= currVal.length; i++) {
-				var newVal = currVal;
-				if (newVal[i] !== '') {
-					if (newVal[i] === undefined || newVal[i].match(prop.per) || newVal[i].match(prop.bang) || !newVal[i].match(prop.px)) {
-						return newVal[i];
+			// newLine = line.split(':')
+			// var currVal = newLine[1].split(' ');
+			// for(var i = 0; i <= currVal.length; i++) {
+			// 	var newVal = currVal;
+
+			// 	if (newVal[i] !== '') {
+			// 		if (newVal[i] === undefined || newVal[i].match(prop.per) || newVal[i].match(prop.bang) || !newVal[i].match(prop.px)) {
+			// 			return newVal[i];
 					
-					} else {
-						newVal[i] = getVal(newVal[i], mTopVal);
+			// 		} else {
+			// 			newVal[i] = getVal(newVal[i], mTopVal);
 
-					} 
-					ret(newVal[i]);
-				}
-			}
+			// 		} 
+			// 		ret(newVal[i]);
+			// 	}
+			// }
 		}
-		// line =  multiplier(line, paddingLeft);
 		return line;
-	}
-
-	//  Return function for loops...
-	function ret(newLine){
-		return newLine;
 	}
 
 	function getFile(path) {
@@ -298,4 +293,10 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	function throwError(err){
 		console.log(errRed('[ERROR]:', err));
 	}
+
+	//  Return function for loops...
+	function ret(newLine){
+		return newLine;
+	}
 }
+
