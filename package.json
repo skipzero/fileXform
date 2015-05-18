@@ -15,7 +15,11 @@
     "css",
     "transform",
     "epub",
-    "size"
+    "size",
+    "dimensions",
+    "height",
+    "width",
+    "position"
   ],
   "author": "skip mcbride",
   "license": "GPL",
@@ -25,8 +29,8 @@
   "homepage": "https://github.com/zerosquadron/fileXform",
   "private": true,
   "dependencies": {
-    "chalk": "^1.0.0",
-    "underscore": "^1.8.3",
-    "node-dom": "^0.1.0"
+    "chalk": "^1.0.0", 
+    "cssom": "^0.3.0",
+    "underscore": "^1.8.3"
   }
 }

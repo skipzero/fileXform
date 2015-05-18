@@ -6,14 +6,16 @@
 var fs				= require('fs')
 	, _ 			= require('underscore')
 	, chalk 		= require('chalk')
-	, dom 			= require('node-dom').dom
+	, css 			= require('cssom')
+	, cheer 		= require('cheerio')
 	, proArg 		= process.argv
 
 	// Define colours for ease of use...
 	, okGrn 		= chalk.green.bold
 	, errRed 		= chalk.red.bold
 
-	// Arguments passed in by user. if only one given, scale accordingly...
+	// Object of arguments passed in by user. if only one given, scale accordingly...
+
 	, path			= proArg[2]
 	, mTop 			= proArg[3]  //  First two are required...
 	, mRight 		= proArg[3]?proArg[3]:mTop
@@ -36,12 +38,12 @@ var fs				= require('fs')
 	, mBtmMargin 	= proArg[18]?proArg[18]:1
 	, mLeftMargin 	= proArg[19]?proArg[19]:mTop;
 
-	console.log(dom)
-
-readCssFiles(path, mTop, mRight, mBottom, mLeft, mHeight, mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin);
+readCssFiles(path, mTop, mRight, mBottom, mLeft, mHeight, mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, 
+	mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin);
 
 //  TODO: line-height, letter-spacing, word-spacing, margin, 
-function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin) {
+function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, 
+	mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin) {
 
 	var readPath = path + '/OPS/styles/'
 		, htmlPath 	= path + '/OPS/text/'
@@ -65,13 +67,14 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		throwError('\nPlease rerun with only one argument to scale by that percentage or one for each of the following:');
 		throwError('top, right, bottom, left, height, width, font-size, padding\n');
 		// throwError('\n You can enter separate properties for the following, in this order:');
-		// throwError('top, right, bottom, left, height, width, font-size, line-height, letter-spacing, word-spacing, padding-top, padding-right, padding-bottom, padding-left, margin-top\n');
+		// throwError('top, right, bottom, left, height, width, font-size, line-height, letter-spacing, word-spacing, padding-top, 
+		// padding-right, padding-bottom, padding-left, margin-top\n');
 		// throwError('margin-right, margin-bottom, margin-left\n');
 		return
 	}
 
 	//  Object containing all properties we're concerned with, for ease
-	var prop = {
+	var cssProp = {
 		'transform' 		: /\btransform\b/gmi
 		, 'top' 			: /^\s*\btop?\b:\s*[0-9]*.*$/gmi
 		, 'right' 			: /^\s*\bright\b:\s*[0-9]*.*$/gmi
@@ -98,163 +101,229 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		, 'com' 			: /,+/g
 	}
 
-	// fromEpub(path);  //  TODO: Unzip the ePub...
-
 	//  This fixes the HTML
 	fs.readdir (htmlPath, function(err, files){
 		if (err) {
 			throwError(err);
 		} else {
 			_.each(files, function(file){
-				console.log(htmlPath + file);
-				try {
-					var data = fs.readFileSync(htmlPath + file, 'utf8');
-				} catch (err) {
-					throwError(err);
-				}
-
-				//  To Arr to iterate over...
-				var temp = data.split('\n');
-
-				temp = _.map(temp, function(line) {
-					if (line.match(prop.inline)){
-						var inLine 			= line.match(prop.inline).toString()
-							, inLineVal 	= inLine.match(prop.dec);
-
-						inLine 				= inLine.replace(prop.dec, (inLineVal[0] * mTop));
-						line 				= line.replace(prop.inline, inLine);
+				
+				fs.readFile(htmlPath + file, 'utf8', function(err, data){
+					if (err) {
+						throwError(err);
 					}
-					return line;
-				})
-				saveFile(htmlPath, file, temp);
+					console.log(okGrn(htmlPath + file));
+
+					//  To Arr to iterate over...
+					var $ = cheer.load(data)
+						, temp;
+					
+					if ($('a.vsm-ngl-act-icon')) {
+						temp = $('a.vsm-ngl-act-icon').children();
+					} else if ($('a.vsm-ngl-audio-icon')) {
+						temp = $('a.vsm-ngl-audio-icon').children();
+					} 
+
+					for (var html in temp){  //  temp: {html: {ln}}
+
+						if (temp[html].hasOwnProperty('attribs') && temp[html].attribs.style) {
+					
+							//returns HTML inline width and height
+							var htmlVal = temp[html].attribs.style;
+							htmlVal = getVal(htmlVal, mTop);
+							temp[html].attribs.style = htmlVal;
+
+						}
+						// return temp
+					}
+				});
+				// saveFile(htmlPath, file, $.html());
 			})
 		}
 	})
 
-	fs.readdir (readPath, function(err, files) {  //  This takes care of the prop...
+	fs.readdir (readPath, function(err, files) {  //  This takes care of the css prop...
 
 		if (err) {
 			throwError(err);
 			
 		} else {
+
 			_.each(files, function(file) {
-				console.log(readPath + file);
+				fs.readFile(readPath + file, 'utf8', function(err, data){
+					if(err) {
+						throwError(err);
+					}
+
+					var cssObj 				= css.parse(data)
+						, skipSelectors 	= ['#controls', '#controls a.button' ]  //  Skip these selectors...
+						
+						//  All the properties we're concerned with. we'll iterate over these to find our values...
+						, propertiesArray 	= [
+						'top','right','bottom','left','height','width',
+						'font-size','margin-top', 'margin-right',
+						'margin-bottom','margin-left', 'padding-top',
+						'padding-right','padding-bottom', 'padding-left',
+						'line-height', 'letter-spacing', 'word-spacing'];
+
+					cssObj = cssObj.cssRules;
+
+					console.log(okGrn(htmlPath + file));
+
+					cssObj.forEach(function(prop) {
+makeObj(prop)
+						ret(prop)
+					})
+
+					function findStyles(prop) {
+						var sorter = prop.style;
+
+						_.each(propertiesArray, function(style) {
+								if (sorter != undefined ) {
+									if ( sorter[style] != undefined) {
+										//  find special selectors and add to val...
+
+										if (prop.selectorText.match('GrEx1ep')) {  // Targets the action buttons for adjustment to the 
+											var mult = findMultiplier(style);
+											
+											if (style = 'left') {
+
+												if (sorter[style] === 'NaNpx') {
+	console.log(prop)
+												}
+												var offset = 20; //  Number to be added to 
+
+												sorter[style] = getVal(sorter[style], mult, offset);
+												ret(prop);
+
+											} else {
+												sorter[style] = getVal(sorter[style], mult)
+
+												ret(prop);
+											}
+										}
+
+
+										var sorted = prop.style[style]
+											, mult = findMultiplier(style);
+										sorted = multiplier(sorted, mult);
+										
+										sorter[style] = sorted;
+										ret(sorted);
+									}
+								}
+							
+						})
+							return (sorter)
+					}
+
+					function findMultiplier (style, propArray) {
+						var mult;
+
+
+
+						// if (style === 'top') {
+						// 	mult = mTop;
+					
+						// } else if (style === 'right') {
+						// 	mult = mRight;
+					
+						// } else if (style === 'bottom') {
+						// 	mult = mBottom;
+					
+						// } else if (style === 'left') {
+						// 	mult = mLeft;
+					
+						// } else if (style === 'font-size') {
+						// 	mult = mFontSize;
+					
+						// } else if (style === 'letter-spacing') {
+						// 	mult = mLetterSpace;
+
+						// } else if (style === 'word-spacing') {
+						// 	mult = mWordSpace;
+					
+						// } else if (style === 'height') {
+						// 	mult = mHeight;
+					
+						// } else if (style = 'width') {
+						// 	mult = mWidth;
+
+						// } else if (style = 'margin-top') {
+						// 	mult = mTopMargin;
+
+						// } else if (style = 'margin-right') {
+						// 	mult = mRightMargin;
+
+						// } else if (style = 'margin-bottom') {
+						// 	mult = mBtmMargin;
+
+						// } else if (style = 'margin-left') {
+						// 	mult = mLeftMargin;
+						
+						// } else if (style = 'padding-top') {
+						// 	mult = mTopPadding;
+
+						// } else if (style = 'padding-right') {
+						// 	mult = mRightPadding;
+
+						// } else if (style = 'padding-bottom') {
+						// 	mult = mBtmPadding;
+
+						// } else if (style = 'padding-left') {
+						// 	mult = mLeftPadding;
 				
-				try {
-					var data = fs.readFileSync(readPath + file, 'utf8');
-				} catch (err) {
-					throwError(err);
-				}
-
-				var tmp = data.split('\n');
-
-				tmp = _.map(tmp, function(line) {
-					if (line.match(prop.transform)) {  // making sure all transforms will scale naturally... checked manually
-						// chalk.bgBlue(console.log('[TRANSFORM]:', line))
+						// } else {
+						// 	mult = mTop;
+						// }
+				
+						return mult;
 					}
-
-					if (line.match(prop.actionImg)) { 
-						line = actionImages(line, mTop);
-						return line;
-					}
-
-					//match our styles
-					 if (line.match(prop.padding)) {   //  Use multi val stepper to handle margin and padding
-						line = multiVal(line, mTopPadding, mRightPadding, mBtmPadding, mLeftPadding);
-
-					} else if (line.match(prop.margin)) {
-						line = multiVal(line, mTopMargin, mRightMargin, mBtmMargin, mLeftMargin);
-
-					} else if (line.match(prop.top)) {
-						line = multiplier(line, mTop);
-
-					} else if (line.match(prop.right)) {
-						line = multiplier(line, mRight);
-
-					} else if (line.match(prop.bottom)) {
-						line =  multiplier(line, mBottom);
-
-					} else if (line.match(prop.left)) {
-						line =  multiplier(line, mLeft);
-
-					}  else if (line.match(prop.height)) {
-						line =  multiplier(line, mHeight);
-
-					} else if (line.match(prop.width)) {
-						line =  multiplier(line, mWidth);
-
-					} else if (line.match(prop.fontSize)) {
-						line =  multiplier(line, mFontSize);
-
-					}
-
-					return line;
 				})
-
-				saveFile(readPath, file, tmp); //  save the changes
-
 			})
+			// saveFile(readPath, file, tmp); //  save the changes
 		}
 	});
+
+	//  create our own element...
+	function makeObj(prop) {
+
+		var styleObj = {}
+		if (!prop.style) {
+			console.log(chalk.red('[ERROR] :'), prop)
+		} else { 
+		styleObj.selector 		= prop.selectorText
+		, styleObj.style 		= prop.style
+		, styleObj.length 		= prop.style.length;}
+
+
+console.log(styleObj, '>>>>>>>>>>>>>>>>>>')
+		return styleObj;
+	}
+
 
 	//Function for the two values  on one line...
 	function actionImages(line, mult) {
 
-		var newLine = line.match(prop.actionImg);
+		var newLine = line.match(cssProp.actionImg);
 		newLine = newLine.toString();
 		newLine = newLine.split(';');
 
 		for (var i = 0; i < newLine.length; i++) {
 		
 			if (newLine[i] != ' }') {
-				var val = newLine[i].match(prop.dec);
+				var val = newLine[i].match(cssProp.dec);
 				val = val * mult;
 				val = val.toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
-				newLine[i] = newLine[i].replace(prop.dec, val)
+				newLine[i] = newLine[i].replace(cssProp.dec, val)
 				ret(newLine[i]);
 			}
 		
 			newLine = newLine.join()
-			line = line.replace(prop.actionImg, newLine);
-			line = line.replace(prop.com, ';');
+			line = line.replace(cssProp.actionImg, newLine);
+			line = line.replace(cssProp.com, ';');
 			return line;
 		}
-	}
-
-	function multiVal(line, mTopVal, mRightVal, mBtmVal, mLeftVal) {  //  Give it the line and the m* var to multiply values.
-
-		//  handles margins and paddings...
-		if (line.match(prop.dTop)){
-			line = multiplier(line, mTopVal);
-
-		} else if (line.match(prop.dRight)) {
-			line = multiplier(line, mRightVal);
-
-		} else if (line.match(prop.dBottom)) {
-			line = multiplier(line, mBtmVal);
-
-		} else if (line.match(prop.dLeft)) {
-			line = multiplier(line, mLeftVal);
-
-		} else {
-			// newLine = line.split(':')
-			// var currVal = newLine[1].split(' ');
-			// for(var i = 0; i <= currVal.length; i++) {
-			// 	var newVal = currVal;
-
-			// 	if (newVal[i] !== '') {
-			// 		if (newVal[i] === undefined || newVal[i].match(prop.per) || newVal[i].match(prop.bang) || !newVal[i].match(prop.px)) {
-			// 			return newVal[i];
-					
-			// 		} else {
-			// 			newVal[i] = getVal(newVal[i], mTopVal);
-
-			// 		} 
-			// 		ret(newVal[i]);
-			// 	}
-			// }
-		}
-		return line;
 	}
 
 	function getFile(path) {
@@ -264,7 +333,7 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 
 	function multiplier(line, mult) { 
 		//  If the line contains a %, it should automatically scale... (do nothing)
-		if (line.match(prop.per)){
+		if (line.match(cssProp.per)){
 			return line;		
 		} else {
 			line = getVal(line, mult);
@@ -272,26 +341,37 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		}
 	}
 
-	function getVal(line, mult) {
-		console.log(line)
-		var lnVal 		= line.match(prop.dec)
-			, newVal 	= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
-			, newLine 	= line.replace(prop.dec, newVal); //  Swap values
-		return newLine;
+	function getVal(line, mult, offset) {
+		var lnVal 		= line.match(cssProp.dec)
+		
+			if (lnVal < 100) {
+				lnVal = lnVal + offset;
+			} else {
+				lnVal = lnVal - offset;
+			}
+
+		if (lnVal != null) {
+			var newVal 		= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
+				, newLine 	= line.replace(cssProp.dec, newVal); //  Swap values
+			return newLine;
+		}
 	}
 
+	//  Save file after all is done...
 	function saveFile(path, file, tmp) {
 
 		//  Turn the Arr back to a string for saving...
 		tmp = tmp.join('\n')
 
 		//  Save file to original...
-		console.log(okGrn('[SUCCESS] Saving file....', file));
+		console.log(okGrn('[SUCCESS]: Saving file....', file));
 		fs.writeFileSync(path + file, tmp);
 	}
 
+	//  Throw Err func...
 	function throwError(err){
 		console.log(errRed('[ERROR]:', err));
+		return;
 	}
 
 	//  Return function for loops...
