@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 /* global require, _ */
 
-
 'use strict';
+
+require('es6-shim');
+
 var fs				= require('fs')
 	, _ 			= require('underscore')
 	, chalk 		= require('chalk')
@@ -26,32 +28,27 @@ var fs				= require('fs')
 	, mFontSize 	= proArg[8]?proArg[8]:mTop
 
 	//unless specified, make the secondary optional. (line-height, letter-spacing, word-spacing, margin, & padding)
-	, mLineHeight 	= proArg[9]?proArg[9]:1
-	, mLetterSpace 	= proArg[10]?proArg[10]:1
-	, mWordSpace 	= proArg[11]?proArg[11]:1
-	, mTopPadding 	= proArg[12]?proArg[12]:1
-	, mRightPadding = proArg[13]?proArg[13]:1
-	, mBtmPadding 	= proArg[14]?proArg[14]:1
-	, mLeftPadding 	= proArg[15]?proArg[15]:1
-	, mTopMargin 	= proArg[16]?proArg[16]:1
-	, mRightMargin 	= proArg[17]?proArg[17]:1
-	, mBtmMargin 	= proArg[18]?proArg[18]:1
-	, mLeftMargin 	= proArg[19]?proArg[19]:mTop;
+	, mLineHeight 		= proArg[9]?proArg[9]:1
+	, mLetterSpacing	= proArg[10]?proArg[10]:1
+	, mWordSpacing 		= proArg[11]?proArg[11]:1
+	, mPaddingTop 		= proArg[12]?proArg[12]:1
+	, mPaddingRight 	= proArg[13]?proArg[13]:1
+	, mPaddingBottom 	= proArg[14]?proArg[14]:1
+	, mPaddingLeft 		= proArg[15]?proArg[15]:1
+	, mMarginTop 		= proArg[16]?proArg[16]:1
+	, mMarginRight 		= proArg[17]?proArg[17]:1
+	, mMarginBottom 	= proArg[18]?proArg[18]:1
+	, mMarginLeft 		= proArg[19]?proArg[19]:mTop;
 
-readCssFiles(path, mTop, mRight, mBottom, mLeft, mHeight, mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, 
-	mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin);
+readCssFiles(path, mTop, mRight, mBottom, mLeft, mHeight, mWidth, mFontSize, mLineHeight, mLetterSpacing, mWordSpacing, mPaddingTop, 
+	mPaddingRight, mPaddingBottom, mPaddingLeft, mMarginTop, mMarginRight, mMarginBottom, mMarginLeft);
 
-//  TODO: line-height, letter-spacing, word-spacing, margin, 
-function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, mLineHeight, mLetterSpace, mWordSpace, mTopPadding, 
-	mRightPadding, mBtmPadding, mLeftPadding, mTopMargin, mRightMargin, mBtmMargin) {
+function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, mLineHeight, mLetterSpacing, mWordSpacing, mPaddingTop, 
+	mPaddingRight, mPaddingBottom, mPaddingLeft, mMarginTop, mMarginRight, mMarginBottom) {
 
 	var readPath = path + '/OPS/styles/'
 		, htmlPath 	= path + '/OPS/text/'
-		, newLine 	= ''
-		, valTop 	= ''
-		, valRight 	= ''
-		, valBottom = ''
-		, valLeft 	= '';
+		, newLine 	= '';
 
 	if (proArg.length < 3) {
 		throwError('Please rerun with a full path to the ePub.');
@@ -171,164 +168,72 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 					console.log(okGrn(htmlPath + file));
 
 					cssObj.forEach(function(prop) {
-makeObj(prop)
+	var styleObj = makeObj(prop),
+		foo 	 = getMult(styleObj, propertiesArray)
+
 						ret(prop)
 					})
-
-					function findStyles(prop) {
-						var sorter = prop.style;
-
-						_.each(propertiesArray, function(style) {
-								if (sorter != undefined ) {
-									if ( sorter[style] != undefined) {
-										//  find special selectors and add to val...
-
-										if (prop.selectorText.match('GrEx1ep')) {  // Targets the action buttons for adjustment to the 
-											var mult = findMultiplier(style);
-											
-											if (style = 'left') {
-
-												if (sorter[style] === 'NaNpx') {
-	console.log(prop)
-												}
-												var offset = 20; //  Number to be added to 
-
-												sorter[style] = getVal(sorter[style], mult, offset);
-												ret(prop);
-
-											} else {
-												sorter[style] = getVal(sorter[style], mult)
-
-												ret(prop);
-											}
-										}
-
-
-										var sorted = prop.style[style]
-											, mult = findMultiplier(style);
-										sorted = multiplier(sorted, mult);
-										
-										sorter[style] = sorted;
-										ret(sorted);
-									}
-								}
-							
-						})
-							return (sorter)
-					}
-
-					function findMultiplier (style, propArray) {
-						var mult;
-
-
-
-						// if (style === 'top') {
-						// 	mult = mTop;
-					
-						// } else if (style === 'right') {
-						// 	mult = mRight;
-					
-						// } else if (style === 'bottom') {
-						// 	mult = mBottom;
-					
-						// } else if (style === 'left') {
-						// 	mult = mLeft;
-					
-						// } else if (style === 'font-size') {
-						// 	mult = mFontSize;
-					
-						// } else if (style === 'letter-spacing') {
-						// 	mult = mLetterSpace;
-
-						// } else if (style === 'word-spacing') {
-						// 	mult = mWordSpace;
-					
-						// } else if (style === 'height') {
-						// 	mult = mHeight;
-					
-						// } else if (style = 'width') {
-						// 	mult = mWidth;
-
-						// } else if (style = 'margin-top') {
-						// 	mult = mTopMargin;
-
-						// } else if (style = 'margin-right') {
-						// 	mult = mRightMargin;
-
-						// } else if (style = 'margin-bottom') {
-						// 	mult = mBtmMargin;
-
-						// } else if (style = 'margin-left') {
-						// 	mult = mLeftMargin;
-						
-						// } else if (style = 'padding-top') {
-						// 	mult = mTopPadding;
-
-						// } else if (style = 'padding-right') {
-						// 	mult = mRightPadding;
-
-						// } else if (style = 'padding-bottom') {
-						// 	mult = mBtmPadding;
-
-						// } else if (style = 'padding-left') {
-						// 	mult = mLeftPadding;
-				
-						// } else {
-						// 	mult = mTop;
-						// }
-				
-						return mult;
-					}
 				})
 			})
 			// saveFile(readPath, file, tmp); //  save the changes
 		}
 	});
 
-	//  create our own element...
+	//  create our own obj...
 	function makeObj(prop) {
 
 		var styleObj = {}
-		if (!prop.style) {
+		if (!prop.style) {  //  filter out objs wo styles
 			console.log(chalk.red('[ERROR] :'), prop)
 		} else { 
-		styleObj.selector 		= prop.selectorText
-		, styleObj.style 		= prop.style
-		, styleObj.length 		= prop.style.length;}
-
-
-console.log(styleObj, '>>>>>>>>>>>>>>>>>>')
+			styleObj.selector 		= prop.selectorText
+			, styleObj.style 		= prop.style
+			, styleObj.length 		= prop.style.length;
+		}
 		return styleObj;
 	}
 
+	function getMult (styleObj, propertiesArray) {
 
-	//Function for the two values  on one line...
-	function actionImages(line, mult) {
+		var  styles = styleObj.style
+			, mult;
+		_.each(propertiesArray, function(arrProp) {
+			_.each(styles, function(styleProp) {
+				if (arrProp === styleProp) {
+					mult = 'm' + arrProp.replace(/^[a-z]/, function(m){ //Gets first word
+						return m.toUpperCase() 
+					})
 
-		var newLine = line.match(cssProp.actionImg);
-		newLine = newLine.toString();
-		newLine = newLine.split(';');
 
-		for (var i = 0; i < newLine.length; i++) {
-		
-			if (newLine[i] != ' }') {
-				var val = newLine[i].match(cssProp.dec);
-				val = val * mult;
-				val = val.toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
-				newLine[i] = newLine[i].replace(cssProp.dec, val)
-				ret(newLine[i]);
-			}
-		
-			newLine = newLine.join()
-			line = line.replace(cssProp.actionImg, newLine);
-			line = line.replace(cssProp.com, ';');
-			return line;
-		}
+				
+					if (mult.match('-')) { //Looks for hyphen to remove, and caps 2nd word is theres one
+
+						mult = mult.replace(/-[a-z]/, function(m) {
+							return m.toUpperCase()
+						}).replace('-', '')
+					}
+					filterButtons(styleObj, mult)
+				}
+			})
+		})
 	}
 
 	function getFile(path) {
 		fileName = path.replace(/^.*[\\\/]/, '');
 	    return fileName;
+	}
+
+	function filterButtons(styleObj, mult) {
+		var testStr = styleObj.selector 
+
+		if (testStr != undefined){
+			console.log(testStr)
+			if (testStr.match('GrEx')) {
+				console.log('bang!!'); 
+			}
+
+			console.log(testStr, '+++++++')
+		}
 	}
 
 	function multiplier(line, mult) { 
@@ -343,25 +248,25 @@ console.log(styleObj, '>>>>>>>>>>>>>>>>>>')
 
 	function getVal(line, mult, offset) {
 		var lnVal 		= line.match(cssProp.dec)
-		
-			if (lnVal < 100) {
-				lnVal = lnVal + offset;
-			} else {
-				lnVal = lnVal - offset;
-			}
+			, offset 	= offset ? offest : 0;
 
 		if (lnVal != null) {
-			var newVal 		= (lnVal * mult).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
+			var newVal 		= (lnVal * mult + offset).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
 				, newLine 	= line.replace(cssProp.dec, newVal); //  Swap values
 			return newLine;
 		}
 	}
 
+
+
+
+
+	//  UTILITIES
 	//  Save file after all is done...
 	function saveFile(path, file, tmp) {
 
 		//  Turn the Arr back to a string for saving...
-		tmp = tmp.join('\n')
+		// tmp = tmp.join('\n')
 
 		//  Save file to original...
 		console.log(okGrn('[SUCCESS]: Saving file....', file));
