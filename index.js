@@ -3,8 +3,6 @@
 
 'use strict';
 
-require('es6-shim');
-
 var fs				= require('fs')
 	, _ 			= require('underscore')
 	, chalk 		= require('chalk')
@@ -14,34 +12,40 @@ var fs				= require('fs')
 
 	// Define colours for ease of use...
 	, okGrn 		= chalk.green.bold
-	, errRed 		= chalk.red.bold
+	, errRed 		= chalk.red.bold;
 
 	// Object of arguments passed in by user. if only one given, scale accordingly...
 
-	, path			= proArg[2]
-	, mTop 			= proArg[3]  //  First two are required...
-	, mRight 		= proArg[3]?proArg[3]:mTop
-	, mBottom 		= proArg[4]?proArg[4]:mTop
-	, mLeft 		= proArg[5]?proArg[5]:mTop
-	, mHeight 		= proArg[6]?proArg[6]:mTop
-	, mWidth 		= proArg[7]?proArg[7]:mTop
-	, mFontSize 	= proArg[8]?proArg[8]:mTop
+var argMult = {
+	path			: proArg[2]
+	, mTop 			: proArg[3]  //  First two are required...
+	, mRight 		: proArg[4]
+	, mBottom 		: proArg[5]
+	, mLeft 		: proArg[6]
+	, mHeight 		: proArg[7]
+	, mWidth 		: proArg[8]
+	, mFontSize 	: proArg[9]
 
 	//unless specified, make the secondary optional. (line-height, letter-spacing, word-spacing, margin, & padding)
-	, mLineHeight 		= proArg[9]?proArg[9]:1
-	, mLetterSpacing	= proArg[10]?proArg[10]:1
-	, mWordSpacing 		= proArg[11]?proArg[11]:1
-	, mPaddingTop 		= proArg[12]?proArg[12]:1
-	, mPaddingRight 	= proArg[13]?proArg[13]:1
-	, mPaddingBottom 	= proArg[14]?proArg[14]:1
-	, mPaddingLeft 		= proArg[15]?proArg[15]:1
-	, mMarginTop 		= proArg[16]?proArg[16]:1
-	, mMarginRight 		= proArg[17]?proArg[17]:1
-	, mMarginBottom 	= proArg[18]?proArg[18]:1
-	, mMarginLeft 		= proArg[19]?proArg[19]:mTop;
+	, mLineHeight 		: proArg[10]
+	, mLetterSpacing	: proArg[11]
+	, mWordSpacing 		: proArg[12]
+	, mPaddingTop 		: proArg[13]
+	, mPaddingRight 	: proArg[14]
+	, mPaddingBottom 	: proArg[15]
+	, mPaddingLeft 		: proArg[16]
+	, mMarginTop 		: proArg[17]
+	, mMarginRight 		: proArg[18]
+	, mMarginBottom 	: proArg[19]
+	, mMarginLeft 		: proArg[20]
+}
 
-readCssFiles(path, mTop, mRight, mBottom, mLeft, mHeight, mWidth, mFontSize, mLineHeight, mLetterSpacing, mWordSpacing, mPaddingTop, 
-	mPaddingRight, mPaddingBottom, mPaddingLeft, mMarginTop, mMarginRight, mMarginBottom, mMarginLeft);
+
+	console.log(argMult.mLeft)
+
+readCssFiles(argMult.path, argMult.mTop, argMult.mRight, argMult.mBottom, argMult.mLeft, argMult.mHeight, argMult.mWidth, argMult.mFontSize, argMult.mLineHeight, 
+	argMult.mLetterSpacing, argMult.mWordSpacing, argMult.mPaddingTop, argMult.mPaddingRight, argMult.mPaddingBottom, argMult.mPaddingLeft, argMult.mMarginTop, argMult.mMarginRight, 
+	argMult.mMarginBottom, argMult.mMarginLeft);
 
 function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, mLineHeight, mLetterSpacing, mWordSpacing, mPaddingTop, 
 	mPaddingRight, mPaddingBottom, mPaddingLeft, mMarginTop, mMarginRight, mMarginBottom) {
@@ -49,7 +53,7 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	var readPath = path + '/OPS/styles/'
 		, htmlPath 	= path + '/OPS/text/'
 		, newLine 	= '';
-
+console.log('begin')
 	if (proArg.length < 3) {
 		throwError('Please rerun with a full path to the ePub.');
 		return;
@@ -69,7 +73,15 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 		// throwError('margin-right, margin-bottom, margin-left\n');
 		return
 	}
-
+console.log(argMult)
+	for (var argProp in argMult) {
+		console.log(argProp, argMult[argProp], '+++++++++++++++++++++++++++++++++++++!!')
+		if (argMult[argProp] === undefined) {
+			argMult[argProp] = argMult.mTop;
+			console.log(argMult[argProp], argProp,'!+!+!+!+!+!+!+!+!+!+!+!+!+!+!+!')
+		}
+	}
+console.log(argMult)
 	//  Object containing all properties we're concerned with, for ease
 	var cssProp = {
 		'transform' 		: /\btransform\b/gmi
@@ -129,7 +141,7 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 							var htmlVal = temp[html].attribs.style;
 							htmlVal = getVal(htmlVal, mTop);
 							temp[html].attribs.style = htmlVal;
-
+console.log(temp[html])
 						}
 						// return temp
 					}
@@ -167,7 +179,7 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 
 					console.log(okGrn(htmlPath + file));
 
-					cssObj.forEach(function(prop) {
+					_.each(cssObj, function(prop) {
 	var styleObj = makeObj(prop),
 		foo 	 = getMult(styleObj, propertiesArray)
 
@@ -204,8 +216,6 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 						return m.toUpperCase() 
 					})
 
-
-				
 					if (mult.match('-')) { //Looks for hyphen to remove, and caps 2nd word is theres one
 
 						mult = mult.replace(/-[a-z]/, function(m) {
@@ -224,15 +234,23 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	}
 
 	function filterButtons(styleObj, mult) {
-		var testStr = styleObj.selector 
+		var buttonSel 		= styleObj.selector
+			, buttonStyle 	= styleObj.style;
 
-		if (testStr != undefined){
-			console.log(testStr)
-			if (testStr.match('GrEx')) {
-				console.log('bang!!'); 
+		if (buttonSel !== undefined){
+
+			if (buttonSel.match('GrEx')) {
+
+				for (var i = 0; i < buttonStyle.length; i++) { 
+					var buttonStyleAttr = buttonStyle[i],
+						returnedVal 	= getVal(buttonStyle[buttonStyleAttr], mult, 0)
+	console.log(returnedVal,'>>>===>>>===')
+
+				}
+				console.log(buttonStyle, mult); 
 			}
 
-			console.log(testStr, '+++++++')
+			console.log(buttonSel, '+++++++')
 		}
 	}
 
@@ -247,12 +265,17 @@ function readCssFiles(path,mTop,mRight,mBottom,mLeft,mHeight,mWidth, mFontSize, 
 	}
 
 	function getVal(line, mult, offset) {
+console.log(mult)
 		var lnVal 		= line.match(cssProp.dec)
 			, offset 	= offset ? offest : 0;
 
-		if (lnVal != null) {
-			var newVal 		= (lnVal * mult + offset).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
+console.log(argMult[mult],'++++++++++++++++++++++++++++++++++++++++++++')
+		if (lnVal != null) { 
+console.log(lnVal[0], mult, offset, '*******')
+debugger;
+			var newVal 		= (lnVal[0] * argMult.mTop + offset).toFixed(2).replace(/\.0+$/,'') //  Only to the hundredth, remove zeros...
 				, newLine 	= line.replace(cssProp.dec, newVal); //  Swap values
+console.log(newLine)
 			return newLine;
 		}
 	}
